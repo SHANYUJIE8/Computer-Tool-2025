@@ -7,6 +7,8 @@
 #Name: KONG YAEWEN Number:2190124 Email:kong.2190124@studenti.uniroma1.it
 #Member4:
 #Name: RU MENGYU Number:2179930	Email:ru.2179930@studenti.uniroma1.it
+#Member5:
+#Name:LIANG	HUAMING	Number:2180952	Email:liang.2180952@studenti.uniroma1.it
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
