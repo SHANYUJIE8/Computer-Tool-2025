@@ -1,0 +1,230 @@
+---
+title: "Assignment4_Phoenix"
+format: 
+  html:
+    self-contained: true
+jupyter: python3
+---
+**Group Name**: Phoenix
+
+- **Member 1**  
+  Name: Shan YUJIE  
+  Number: 2180790  
+  Email: shan.2180790@studenti.uniroma1.it
+
+- **Member 2**  
+  Name: Sun YUNYANG  
+  Number: 2190190  
+  Email: sun.2190190@studenti.uniroma1.it
+
+- **Member 3**  
+  Name: KONG YAEWEN  
+  Number: 2190124  
+  Email: kong.2190124@studenti.uniroma1.it
+
+- **Member 4**  
+  Name: RU MENGYU  
+  Number: 2179930  
+  Email: ru.2179930@studenti.uniroma1.it
+
+- **Member 5**  
+  Name: LIANG HUAMING  
+  Number: 2180952  
+  Email: liang.2180952@studenti.uniroma1.it
+
+## Exercise 1: Effect of Sample Size
+
+This section investigates how the number of samples affects Lasso’s ability to recover true model coefficients.
+
+```{python}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LassoCV
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+
+n_features = 50
+n_informative = 10
+noise_level = 1.0
+sample_sizes = [100, 200, 1000]
+results = []
+np.random.seed(42)
+
+for n_samples in sample_sizes:
+    X = np.random.randn(n_samples, n_features)
+    true_coefficients = np.zeros(n_features)
+    informative_features = np.random.choice(n_features, n_informative, replace=False)
+    for idx in informative_features:
+        true_coefficients[idx] = np.random.randn() * 3
+    Y = X @ true_coefficients + np.random.randn(n_samples) * noise_level
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    lasso_cv = LassoCV(alphas=np.linspace(0.0001, 0.3, 50), cv=5, max_iter=10000)
+    lasso_cv.fit(X_train_scaled, Y_train)
+    nonzero_coef = np.sum(lasso_cv.coef_ != 0)
+    correctly_identified = np.sum((lasso_cv.coef_ != 0) & (true_coefficients != 0))
+    false_positives = np.sum((lasso_cv.coef_ != 0) & (true_coefficients == 0))
+    results.append({
+        'Sample Size': n_samples,
+        'Optimal Alpha': lasso_cv.alpha_,
+        'Test R²': r2_score(Y_test, lasso_cv.predict(X_test_scaled)),
+        'Test MSE': mean_squared_error(Y_test, lasso_cv.predict(X_test_scaled)),
+        'Non-zero Coefficients': nonzero_coef,
+        'Correctly Selected': correctly_identified,
+        'False Positives': false_positives
+    })
+
+result_df = pd.DataFrame(results)
+print(result_df)
+
+plt.figure(figsize=(10, 6))
+plt.plot(result_df['Sample Size'], result_df['Correctly Selected'], 'o-', label='Correctly Selected Features')
+plt.plot(result_df['Sample Size'], result_df['False Positives'], 's--', label='False Positives')
+plt.axhline(y=n_informative, color='r', linestyle='--', label='True Informative Features')
+plt.xlabel('Sample Size')
+plt.ylabel('Number of Features')
+plt.title('Effect of Sample Size on Lasso Feature Recovery')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+When the sample size is small (e.g., n = 100), the Lasso model is prone to false positives or may miss some important features. However, as the sample size increases (n = 1000), the Lasso is more likely to accurately recover all the true non - zero coefficients, and its feature selection ability is significantly enhanced. This indicates that the sample size has a significant impact on the recovery effect of sparse models.
+
+## Exercise 2: Different Sparsity Levels
+
+This section varies the number of true informative features to evaluate how sparsity influences Lasso performance.
+
+```{python}
+n_samples = 300
+n_features = 100
+noise_level = 1.0
+sparsity_levels = [5, 20, 50, 100]
+results = []
+np.random.seed(42)
+
+for n_informative in sparsity_levels:
+    X = np.random.randn(n_samples, n_features)
+    true_coefficients = np.zeros(n_features)
+    informative_features = np.random.choice(n_features, n_informative, replace=False)
+    for idx in informative_features:
+        true_coefficients[idx] = np.random.randn() * 3
+    Y = X @ true_coefficients + np.random.randn(n_samples) * noise_level
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    lasso_cv = LassoCV(alphas=np.linspace(0.0001, 0.3, 50), cv=5, max_iter=10000)
+    lasso_cv.fit(X_train_scaled, Y_train)
+    nonzero_coef = np.sum(lasso_cv.coef_ != 0)
+    correctly_identified = np.sum((lasso_cv.coef_ != 0) & (true_coefficients != 0))
+    false_positives = np.sum((lasso_cv.coef_ != 0) & (true_coefficients == 0))
+    results.append({
+        'Informative Features': n_informative,
+        'Optimal Alpha': lasso_cv.alpha_,
+        'Test R²': r2_score(Y_test, lasso_cv.predict(X_test_scaled)),
+        'Test MSE': mean_squared_error(Y_test, lasso_cv.predict(X_test_scaled)),
+        'Non-zero Coefficients': nonzero_coef,
+        'Correctly Selected': correctly_identified,
+        'False Positives': false_positives
+    })
+
+result_df = pd.DataFrame(results)
+print(result_df)
+
+plt.figure(figsize=(10, 6))
+plt.plot(result_df['Informative Features'], result_df['Correctly Selected'], 'o-', label='Correctly Selected Features')
+plt.plot(result_df['Informative Features'], result_df['False Positives'], 's--', label='False Positives')
+plt.plot(result_df['Informative Features'], result_df['Non-zero Coefficients'], 'x-', label='Total Selected Features')
+plt.plot(sparsity_levels, sparsity_levels, 'r--', label='True Informative Features')
+plt.xlabel('Number of True Informative Features')
+plt.ylabel('Feature Count')
+plt.title('Effect of Sparsity on Lasso Feature Recovery')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+Lasso performs well when the true model is highly sparse (e.g., 5 or 20 informative features), successfully recovering most relevant variables. However, as sparsity decreases (i.e., the number of relevant features increases), Lasso tends to underselect and its performance in both accuracy and feature selection degrades, especially when the model becomes dense (50+ informative features).
+
+## Exercise 3: Correlated Features
+
+This section introduces correlation among features to examine its impact on Lasso’s performance.
+
+```{python}
+n_samples = 300
+n_features = 50
+n_informative = 10
+noise_level = 1.0
+correlation_level = 0.8
+
+np.random.seed(42)
+
+correlation_matrix = np.eye(n_features)
+for i in range(n_features):
+    for j in range(n_features):
+        if i != j:
+            correlation_matrix[i, j] = correlation_level
+
+mean = np.zeros(n_features)
+X = np.random.multivariate_normal(mean, correlation_matrix, size=n_samples)
+
+true_coefficients = np.zeros(n_features)
+informative_features = np.random.choice(n_features, n_informative, replace=False)
+for idx in informative_features:
+    true_coefficients[idx] = np.random.randn() * 3
+
+Y = X @ true_coefficients + np.random.randn(n_samples) * noise_level
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3, random_state=42)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+lasso_cv = LassoCV(alphas=np.linspace(0.0001, 0.3, 50), cv=5, max_iter=10000)
+lasso_cv.fit(X_train_scaled, Y_train)
+
+nonzero_coef = np.sum(lasso_cv.coef_ != 0)
+correctly_identified = np.sum((lasso_cv.coef_ != 0) & (true_coefficients != 0))
+false_positives = np.sum((lasso_cv.coef_ != 0) & (true_coefficients == 0))
+
+print(f"Optimal alpha: {lasso_cv.alpha_:.4f}")
+print(f"Correctly selected features: {correctly_identified} / {n_informative}")
+print(f"False positives: {false_positives}")
+print(f"Test R²: {r2_score(Y_test, lasso_cv.predict(X_test_scaled)):.4f}")
+print(f"Test MSE: {mean_squared_error(Y_test, lasso_cv.predict(X_test_scaled)):.4f}")
+
+plt.figure(figsize=(10, 6))
+plt.scatter(true_coefficients, lasso_cv.coef_, alpha=0.7)
+plt.plot([-5, 5], [-5, 5], 'r--', label='Perfect Recovery')
+plt.xlabel('True Coefficients')
+plt.ylabel('Estimated Coefficients (Lasso)')
+plt.title('Lasso Coefficient Recovery with Correlated Features')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+When features are highly correlated, Lasso’s ability to recover the true informative features is weakened. It may still achieve good predictive performance, but its feature selection becomes unstable and may select the wrong variables due to multicollinearity. This demonstrates the sensitivity of Lasso to feature correlation.
+
+## Exercise 3: Interpretation
+1. Why does Lasso perform feature selection while Ridge doesn’t?
+
+2. In what situations would you prefer Lasso over Ridge?
+
+3. What are the limitations of Lasso for feature selection?
+
+The Lasso (Least Absolute Shrinkage and Selection Operator) performs feature selection because it has L1 regularization so that it penalizes the absolute values of regression coefficients.
+
+That penalty does an interesting thing which is to exactly zero some of the coefficients during optimization since it is penalizing the size of the numbers (shrinking them all toward zero). In contrast Ridge uses L2 or squared regularization meaning that instead of penalizing large betas, it penalizes the square of them.
+
+Coefficient shrinkage using L2 regularization leads to the loss of some coefficients, but only rarely to zero and always warrants shrinkage hence Ridge deletes nothing from your finally model.(Fairly keeps all features with low importance)
+
+In the case we'll only have a few number of truly informative features (i.e., data is sparse), Lasso is preferred because I think it adheres to Occam's razor. It is great for interpretability, as it cleans up the model by getting rid of less important predictors. In high-dimensional cases (number of features larger than samples) will also regularize with Lasso, thus reducing overfitting (decreasing number of model parameters).
+
+Unfortunately this is one of the barriers that Lasso has. Perhaps the most problematic limitation of all is its instability when features are very highly correlated — it will pick “one feature out of many that are perfectly correlated”, which incurs inconsistencies in variable selection.
+
+Moreover, in high-dimensional or even moderate dimensional settings where the number of informative features is large relative to the number of samples, Lasso can do poorly or pick very few of the true predictors when the true effects are small and spread out. In this case, Ridge or elastic net (L1 + L2 penalty) might be better balance between regularization criteria applied and numbers of features retained. 
